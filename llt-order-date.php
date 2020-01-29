@@ -9,50 +9,49 @@
 * Text Domain: _llt_slmdgrp
 */
 
-if(!defined('ABSPATH'))exit;
-	/* get all order processing status */
+if( !defined( 'ABSPATH' ) ) exit;
+
 function llt_hook_to_function() {
-	global $wpdb;
-	// We add 'wc-' prefix when is missing from order staus
+    global $wpdb;
+
 	$order_status = 'processing';
-	$status = 'wc-' . str_replace('wc-', '', $order_status);
+	$status = 'wc-' . str_replace( 'wc-', '', $order_status );
 	$sql = "SELECT * FROM ".$wpdb->prefix."posts WHERE post_status = '".$status."' AND post_type = 'shop_order'";
-	$orders = $wpdb->get_results($sql, ARRAY_A);
+	$orders = $wpdb->get_results( $sql, ARRAY_A );
 
-	//get all orders	
-	foreach($orders as $order):
+	foreach( $orders as $order ):
 
-		$order_id = intval($order['ID']);
-		$current_date = date('d-m-Y');
-		$field = get_field('item_end_date', $order['ID']);
-		$full_end_date = (new DateTime($field))->format('d-m-Y');
+		$order_id = intval( $order['ID'] );
+		$current_date = date( 'd-m-Y' );
+		$field = get_field( 'item_end_date', $order['ID'] );
+		$full_end_date = ( new DateTime( $field ) )->format( 'd-m-Y' );
 
 		/**
 		 * Change order status function
 		 **/ 
+		$gets = "SELECT * FROM " . $wpdb->prefix . "custom_orders WHERE order_id = '" .$order_id. "'";
+		$orders_v = $wpdb->get_results( $gets, ARRAY_A );
 
-		$_order = new WC_Order($order_id);
-		if(!empty($_order)) {
-			global $woocommerce;
-			if(strtotime($full_end_date) == strtotime("today")) {
-				$_order->update_status('completed');
-			} else if(strtotime($full_end_date) < strtotime("today")) {
-				$_order->update_status('completed');
-			}
-		}
+		$validate = false;
+		foreach( $orders_v as $mv ):
+			if( !empty( mv['order_id'] ) ):
+				$validate = true;
+			endif;
+		endforeach;
+
+		if( !$validate ):
+			$_order = new WC_Order( $order_id );
+			if( !empty( $_order ) ):
+				if( strtotime( $full_end_date ) <= strtotime( "today" ) ):
+					$_order->update_status( 'completed' );
+					$wpdb->insert(
+						$wpdb->prefix.'custom_orders', array(
+							'order_id'     => $order_id,
+							'order_status' => 'true'
+						)
+					);
+				endif;
+			endif;
+		endif;
 	endforeach;		
-}//end cron function
-
-add_action('_llt_next_event_2', 'llt_hook_to_function');
-add_filter('cron_schedules', function($schedules) {
-	$schedules['every-minute'] = array(
-	   'interval' => 1 * MINUTE_IN_SECONDS,
-	   'display'  => __('Every minute')
-	);
-	return $schedules;
-});
-
-if(!wp_next_scheduled('_llt_next_event_2')) {
-	wp_schedule_event(time(), 'every-minute', '_llt_next_event_2');
 }
-?>
