@@ -1,3 +1,3 @@
 # Order Date
 
-Woocommerce Plugin to mark completed these orders that their end-date has been reached.
+Woocommerce Plugin to mark completed those orders that their end-date has been reached.
